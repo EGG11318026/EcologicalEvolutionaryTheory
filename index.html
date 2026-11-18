@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>生態進化論｜生態隨機事件機</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: DotGothic16 (支援繁體中文像素風格) & Silkscreen -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* 全域像素風格設定 */
+    :root {
+      --bg-sky: #a8d8ea;
+      --bg-meadow: #95d5b2;
+      --bg-earth: #7f5539;
+      --card-bg: #fffdf7;
+      --pixel-border: #2b2d42;
+      --accent-gold: #ffd166;
+      --accent-red: #ef476f;
+      --accent-green: #06d6a0;
+    }
+
+    body {
+      font-family: 'DotGothic16', monospace, sans-serif;
+      background-color: #d8f3dc;
+      background-image: 
+        radial-gradient(#b7e4c7 2px, transparent 2px),
+        radial-gradient(#95d5b2 2px, #d8f3dc 2px);
+      background-size: 32px 32px;
+      background-position: 0 0, 16px 16px;
+      color: #2b2d42;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .font-pixel-en {
+      font-family: 'Silkscreen', 'DotGothic16', monospace;
+    }
+
+    /* 復古像素硬邊框與立體陰影 */
+    .pixel-box {
+      border: 4px solid var(--pixel-border);
+      box-shadow: 
+        inset -4px -4px 0px rgba(0, 0, 0, 0.12),
+        inset 4px 4px 0px rgba(255, 255, 255, 0.5),
+        6px 6px 0px var(--pixel-border);
+    }
+
+    .pixel-box-sm {
+      border: 3px solid var(--pixel-border);
+      box-shadow: 4px 4px 0px var(--pixel-border);
+    }
+
+    /* 像素按鈕互動效果 */
+    .pixel-btn {
+      border: 4px solid var(--pixel-border);
+      box-shadow: 
+        inset -4px -4px 0px rgba(0, 0, 0, 0.2),
+        inset 4px 4px 0px rgba(255, 255, 255, 0.4),
+        4px 4px 0px var(--pixel-border);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .pixel-btn:hover:not(:disabled) {
+      filter: brightness(1.05);
+      transform: translate(-1px, -1px);
+      box-shadow: 
+        inset -4px -4px 0px rgba(0, 0, 0, 0.2),
+        inset 4px 4px 0px rgba(255, 255, 255, 0.4),
+        5px 5px 0px var(--pixel-border);
+    }
+
+    .pixel-btn:active:not(:disabled) {
+      transform: translate(4px, 4px);
+      box-shadow: 0px 0px 0px var(--pixel-border);
+    }
+
+    .pixel-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* 像素動畫效果 */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes shakeTense {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-5px, 2px) rotate(-2deg); }
+      40% { transform: translate(5px, -2px) rotate(2deg); }
+      60% { transform: translate(-4px, -2px) rotate(-1.5deg); }
+      80% { transform: translate(4px, 2px) rotate(1.5deg); }
+    }
+
+    @keyframes cardPopIn {
+      0% { transform: scale(0.4) rotateY(90deg); opacity: 0; }
+      70% { transform: scale(1.05) rotateY(0deg); opacity: 1; }
+      100% { transform: scale(1) rotateY(0deg); opacity: 1; }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 209, 102, 0.7), 6px 6px 0px var(--pixel-border); }
+      50% { box-shadow: 0 0 0 10px rgba(255, 209, 102, 0), 6px 6px 0px var(--pixel-border); }
+    }
+
+    .animate-float {
+      animation: floatSlow 3s ease-in-out infinite;
+    }
+
+    .animate-shake {
+      animation: shakeTense 0.22s infinite;
+    }
+
+    .animate-card-reveal {
+      animation: cardPopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .animate-pulse-gold {
+      animation: pulseGlow 2s infinite;
+    }
+
+    /* SVG 像素清晰化 */
+    svg.pixel-art {
+      shape-rendering: crispEdges;
+      image-rendering: pixelated;
+    }
+
+    /* 自訂捲軸（說明書彈窗） */
+    .pixel-scroll::-webkit-scrollbar {
+      width: 10px;
+    }
+    .pixel-scroll::-webkit-scrollbar-track {
+      background: #e9edc9;
+      border-left: 3px solid #2b2d42;
+    }
+    .pixel-scroll::-webkit-scrollbar-thumb {
+      background: #7f5539;
+      border: 2px solid #2b2d42;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-5">
+
+  <!-- 頂部導覽列：標題與控制按鈕 -->
+  <header class="w-full max-w-lg flex flex-col gap-3">
+    <div class="pixel-box bg-[#fffdf7] px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <!-- 迷你像素樹苗圖示 -->
+        <svg class="w-8 h-8 pixel-art shrink-0" viewBox="0 0 16 16">
+          <rect x="7" y="10" width="2" height="4" fill="#7f5539"/>
+          <rect x="4" y="13" width="8" height="2" fill="#52b788"/>
+          <rect x="5" y="6" width="6" height="4" fill="#40916c"/>
+          <rect x="6" y="4" width="4" height="2" fill="#52b788"/>
+          <rect x="4" y="7" width="2" height="2" fill="#74c69d"/>
+          <rect x="10" y="7" width="2" height="2" fill="#74c69d"/>
+        </svg>
+        <div>
+          <span class="text-xs bg-[#52b788] text-white px-1.5 py-0.5 border-2 border-[#2b2d42] inline-block mb-0.5">BOARD GAME HELPER</span>
+          <h1 class="text-lg sm:text-xl font-bold tracking-wider text-[#2b2d42] leading-tight">
+            生態進化論｜隨機事件機
+          </h1>
+        </div>
+      </div>
+
+      <!-- 音效開關按鈕 -->
+      <button id="soundToggleBtn" onclick="toggleSound()" class="pixel-btn bg-[#ffd166] p-2 text-sm font-bold flex flex-col items-center justify-center min-w-[54px]" title="切換 8-bit 音效">
+        <span id="soundIcon" class="text-base leading-none">🔊</span>
+        <span id="soundLabel" class="text-[10px] mt-1">音效開</span>
+      </button>
+    </div>
+
+    <!-- 功能列：遊戲說明書 & 歷史紀錄 -->
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="openModal('manualModal')" class="pixel-btn bg-[#8ecae6] hover:bg-[#9dd6f0] py-2.5 px-3 font-bold text-sm sm:text-base flex items-center justify-center gap-2">
+        <span>📖</span> 遊戲說明書
+      </button>
+      <button onclick="openModal('historyModal')" class="pixel-btn bg-[#e9edc9] hover:bg-[#f2f5dc] py-2.5 px-3 font-bold text-sm sm:text-base flex items-center justify-center gap-2">
+        <span>📜</span> 抽取紀錄 (<span id="historyCount">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- 中央主舞台：微縮像素生態盒 / 事件卡顯示區 -->
+  <main class="w-full max-w-lg my-4 flex-1 flex flex-col items-center justify-center">
+    
+    <!-- 狀態一：待機微縮像素生態盒（尚未抽卡或洗牌中） -->
+    <div id="terrariumStage" class="w-full pixel-box bg-[#fffdf7] p-4 sm:p-5 flex flex-col items-center text-center relative overflow-hidden">
+      <!-- 掌上機狀態燈號 -->
+      <div class="w-full flex items-center justify-between mb-3 pb-2 border-b-4 border-dashed border-[#d8e2dc]">
+        <div class="flex items-center gap-1.5">
+          <span id="statusDot" class="w-3 h-3 bg-[#06d6a0] border-2 border-[#2b2d42] inline-block"></span>
+          <span id="statusText" class="text-xs sm:text-sm font-bold text-[#4a5759]">生態系穩定運作中...</span>
+        </div>
+        <span class="font-pixel-en text-xs text-[#7f5539] font-bold">ECO-SYS v1.0</span>
+      </div>
+
+      <!-- 微縮像素森林場景 SVG -->
+      <div id="terrariumVisual" class="w-full aspect-[16/10] bg-[#a8d8ea] border-4 border-[#2b2d42] relative overflow-hidden flex items-center justify-center mb-4">
+        <svg class="w-full h-full pixel-art" viewBox="0 0 64 40" preserveAspectRatio="xMidYMid slice">
+          <!-- 天空與白雲 -->
+          <rect width="64" height="40" fill="#a8d8ea"/>
+          <!-- 太陽 -->
+          <rect x="50" y="4" width="6" height="6" fill="#ffd166"/>
+          <rect x="49" y="5" width="8" height="4" fill="#ffd166"/>
+          <rect x="51" y="3" width="4" height="8" fill="#ffd166"/>
+          <!-- 飄浮白雲 -->
+          <g class="animate-float">
+            <rect x="10" y="6" width="10" height="3" fill="#ffffff"/>
+            <rect x="12" y="4" width="6" height="2" fill="#ffffff"/>
+            <rect x="30" y="8" width="8" height="2" fill="#ffffff"/>
+            <rect x="32" y="6" width="4" height="2" fill="#ffffff"/>
+          </g>
+          <!-- 遠山 -->
+          <polygon points="0,28 14,14 28,28" fill="#74c69d"/>
+          <polygon points="20,28 38,12 56,28" fill="#52b788"/>
+          <polygon points="44,28 58,16 64,22 64,28" fill="#40916c"/>
+          <!-- 草地與土壤 -->
+          <rect x="0" y="28" width="64" height="5" fill="#52b788"/>
+          <rect x="0" y="33" width="64" height="7" fill="#7f5539"/>
+          <!-- 土壤像素點綴 -->
+          <rect x="6" y="35" width="2" height="2" fill="#582f0e"/>
+          <rect x="22" y="37" width="3" height="1" fill="#582f0e"/>
+          <rect x="45" y="35" width="2" height="2" fill="#582f0e"/>
+          <rect x="56" y="36" width="2" height="2" fill="#582f0e"/>
+          <!-- 小水窪 -->
+          <rect x="26" y="29" width="12" height="3" fill="#48cae4"/>
+          <rect x="28" y="30" width="8" height="1" fill="#90e0ef"/>
+          <!-- 像素松樹 (左) -->
+          <rect x="9" y="24" width="2" height="4" fill="#582f0e"/>
+          <rect x="6" y="21" width="8" height="3" fill="#2d6a4f"/>
+          <rect x="7" y="18" width="6" height="3" fill="#40916c"/>
+          <rect x="8" y="15" width="4" height="3" fill="#52b788"/>
+          <!-- 像素松樹 (右) -->
+          <rect x="52" y="23" width="2" height="5" fill="#582f0e"/>
+          <rect x="48" y="20" width="10" height="3" fill="#2d6a4f"/>
+          <rect x="49" y="17" width="8" height="3" fill="#40916c"/>
+          <rect x="51" y="14" width="4" height="3" fill="#52b788"/>
+          <!-- 可愛像素小白兔 (草地上) -->
+          <rect x="17" y="24" width="1" height="2" fill="#ffffff"/>
+          <rect x="19" y="24" width="1" height="2" fill="#ffffff"/>
+          <rect x="17" y="26" width="4" height="2" fill="#ffffff"/>
+          <rect x="17" y="26" width="1" height="1" fill="#ef476f"/>
+          <!-- 可愛像素小青蛙 (水窪旁) -->
+          <rect x="40" y="26" width="4" height="2" fill="#06d6a0"/>
+          <rect x="40" y="25" width="1" height="1" fill="#2b2d42"/>
+          <rect x="43" y="25" width="1" height="1" fill="#2b2d42"/>
+        </svg>
+
+        <!-- 洗牌中覆蓋層 (預設隱藏) -->
+        <div id="shufflingOverlay" class="hidden absolute inset-0 bg-[#2b2d42]/85 flex flex-col items-center justify-center text-white p-4">
+          <div id="shuffleIcon" class="text-5xl mb-2">🎴</div>
+          <p id="shuffleText" class="text-lg font-bold tracking-widest text-[#ffd166]">感應自然波動中...</p>
+          <div class="w-48 h-4 border-2 border-white mt-3 p-0.5 bg-[#2b2d42]">
+            <div id="shuffleProgress" class="h-full bg-[#06d6a0] w-0 transition-all duration-100"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提示文字 -->
+      <p class="text-sm sm:text-base text-[#4a5759] leading-relaxed">
+        當玩家從牌堆抽到 <span class="inline-block bg-[#ef476f] text-white px-1.5 font-bold border-2 border-[#2b2d42]">K 牌</span> 時，<br/>
+        請立即點擊下方按鈕抽取自然界隨機事件！
+      </p>
+    </div>
+
+    <!-- 狀態二：揭曉事件卡（預設隱藏） -->
+    <div id="eventCardStage" class="hidden w-full pixel-box bg-[#fffdf7] p-4 sm:p-5 flex flex-col animate-card-reveal">
+      <!-- 卡片頂部標籤 -->
+      <div class="flex items-center justify-between mb-3">
+        <span id="eventBadge" class="px-2.5 py-1 text-xs sm:text-sm font-bold border-2 border-[#2b2d42] text-white bg-[#ef476f]">
+          ⚠️ 突發環境事件
+        </span>
+        <span id="eventNumber" class="font-pixel-en text-xs font-bold text-[#7f5539]">EVENT #01</span>
+      </div>
+
+      <!-- 卡片主標題 -->
+      <h2 id="eventTitle" class="text-2xl sm:text-3xl font-bold text-center text-[#2b2d42] mb-3 tracking-wide">
+        🔥 森林大火
+      </h2>
+
+      <!-- 像素 2D 可愛插畫框 -->
+      <div id="eventIllustration" class="w-full aspect-[16/9] border-4 border-[#2b2d42] mb-4 overflow-hidden bg-[#2b2d42]">
+        <!-- 由 JS 動態注入專屬 SVG 像素插畫 -->
+      </div>
+
+      <!-- 遊戲效果區塊 -->
+      <div class="pixel-box-sm bg-[#fff3b0] p-3 sm:p-3.5 mb-3">
+        <div class="flex items-center gap-1.5 font-bold text-[#9e2a2b] text-sm sm:text-base mb-1">
+          <span>⚡</span> <span>撲克牌規則效果：</span>
+        </div>
+        <p id="eventEffect" class="text-sm sm:text-base font-bold text-[#2b2d42] leading-relaxed">
+          所有玩家場上數字「最小」的一張生物牌棄置（平手則皆棄置）！
+        </p>
+      </div>
+
+      <!-- 生態小知識區塊 -->
+      <div class="pixel-box-sm bg-[#e8f5e9] p-3 sm:p-3.5">
+        <div class="flex items-center gap-1.5 font-bold text-[#2d6a4f] text-xs sm:text-sm mb-1">
+          <span>🌱</span> <span>生態科普小知識：</span>
+        </div>
+        <p id="eventKnowledge" class="text-xs sm:text-sm text-[#344e41] leading-relaxed">
+          突發的森林大火會無差別衝擊棲地，首當其衝的是移動較慢或數量較少的物種。
+        </p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 底部操作按鈕區 -->
+  <footer class="w-full max-w-lg flex flex-col gap-2.5">
+    <!-- 主抽卡按鈕 -->
+    <button id="drawEventBtn" onclick="startDrawEvent()" class="pixel-btn animate-pulse-gold bg-[#ffd166] hover:bg-[#ffe08a] text-[#2b2d42] w-full py-3.5 sm:py-4 px-5 text-lg sm:text-xl font-bold flex items-center justify-center gap-2.5">
+      <span class="text-2xl">🎲</span>
+      <span>抽到 K 牌！抽取生態事件</span>
+    </button>
+
+    <!-- 收起卡片按鈕（僅在顯示事件卡時出現） -->
+    <button id="resetCardBtn" onclick="resetToTerrarium()" class="hidden pixel-btn bg-[#ced4da] hover:bg-[#dee2e6] text-[#2b2d42] w-full py-2.5 px-4 text-sm sm:text-base font-bold flex items-center justify-center gap-2">
+      <span>🔄</span>
+      <span>執行完畢，收起事件卡</span>
+    </button>
+  </footer>
+
+  <!-- ==================== 彈窗一：遊戲說明書 ==================== -->
+  <div id="manualModal" class="hidden fixed inset-0 z-50 bg-[#2b2d42]/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="pixel-box bg-[#fffdf7] w-full max-w-lg max-h-[88vh] flex flex-col">
+      <!-- 彈窗標題列 -->
+      <div class="bg-[#52b788] text-white px-4 py-3 border-b-4 border-[#2b2d42] flex items-center justify-between">
+        <h3 class="text-lg sm:text-xl font-bold flex items-center gap-2">
+          <span>📖</span> 《生態進化論》遊戲說明書
+        </h3>
+        <button onclick="closeModal('manualModal')" class="pixel-btn bg-[#ef476f] text-white px-2.5 py-1 text-sm font-bold">
+          ✕
+        </button>
+      </div>
+
+      <!-- 說明書捲動內容 -->
+      <div class="p-4 sm:p-5 overflow-y-auto pixel-scroll space-y-5 text-sm sm:text-base leading-relaxed">
+        
+        <!-- 1. 遊戲目標 -->
+        <section class="pixel-box-sm bg-[#f8f9fa] p-3.5">
+          <h4 class="font-bold text-base sm:text-lg text-[#2d6a4f] mb-1.5 flex items-center gap-1.5">
+            <span>🏆</span> 1. 遊戲目標
+          </h4>
+          <p>
+            率先在自己的生態區同時建立完整的<span class="font-bold text-[#d62828] underline">四層食物鏈</span>（<span class="font-bold">♣ 生產者 → ♦ 草食 → ♥ 肉食 → ♠ 頂級掠奪</span>），即可贏得勝利！
+          </p>
+        </section>
+
+        <!-- 2. 撲克牌花色與階級圖鑑 -->
+        <section class="pixel-box-sm bg-[#fffdf7] p-3.5">
+          <h4 class="font-bold text-base sm:text-lg text-[#7f5539] mb-2.5 flex items-center gap-1.5">
+            <span>🃏</span> 2. 撲克牌花色與階級圖鑑
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- 梅花 -->
+            <div class="border-2 border-[#2b2d42] bg-[#d8f3dc] p-2.5 flex items-center gap-2.5">
+              <span class="text-2xl font-bold text-[#1b4332]">♣</span>
+              <div>
+                <div class="font-bold text-[#1b4332]">梅花＝生產者</div>
+                <div class="text-xs text-[#2d6a4f]">植物、藻類（食物鏈基礎）</div>
+              </div>
+            </div>
+            <!-- 方塊 -->
+            <div class="border-2 border-[#2b2d42] bg-[#fff3b0] p-2.5 flex items-center gap-2.5">
+              <span class="text-2xl font-bold text-[#d62828]">♦</span>
+              <div>
+                <div class="font-bold text-[#9e2a2b]">方塊＝初級消費者</div>
+                <div class="text-xs text-[#7f5539]">草食動物（兔、鹿、蝗蟲）</div>
+              </div>
+            </div>
+            <!-- 紅心 -->
+            <div class="border-2 border-[#2b2d42] bg-[#ffccd5] p-2.5 flex items-center gap-2.5">
+              <span class="text-2xl font-bold text-[#c9184a]">♥</span>
+              <div>
+                <div class="font-bold text-[#800f2f]">紅心＝次級消費者</div>
+                <div class="text-xs text-[#590d22]">小型肉食動物（狐狸、蛇）</div>
+              </div>
+            </div>
+            <!-- 黑桃 -->
+            <div class="border-2 border-[#2b2d42] bg-[#e0fbfc] p-2.5 flex items-center gap-2.5">
+              <span class="text-2xl font-bold text-[#1d3557]">♠</span>
+              <div>
+                <div class="font-bold text-[#1d3557]">黑桃＝高級消費者</div>
+                <div class="text-xs text-[#457b9d]">頂級掠食者（老鷹、老虎）</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 回合流程與規則 -->
+        <section class="pixel-box-sm bg-[#f8f9fa] p-3.5">
+          <h4 class="font-bold text-base sm:text-lg text-[#1d3557] mb-1.5 flex items-center gap-1.5">
+            <span>🔄</span> 3. 回合流程與規則
+          </h4>
+          <ul class="list-disc pl-5 space-y-1.5">
+            <li><span class="font-bold">開局準備：</span>每人發 <span class="font-bold text-[#d62828]">4 張牌</span>，每次行動後從牌堆補牌，手中始終保持 4 張。</li>
+            <li><span class="font-bold">每回合行動（三選一）：</span>
+              <ol class="list-decimal pl-5 mt-1 space-y-1 text-xs sm:text-sm">
+                <li><span class="font-bold text-[#2d6a4f]">部署生物：</span>打出 <span class="font-bold">A～10</span> 到自己生態區（同花色若已存在，可打出新牌覆蓋升級）。</li>
+                <li><span class="font-bold text-[#c9184a]">生態競爭：</span>用<span class="font-bold">同花色且數字較大</span>的牌淘汰對手同花色生物；但<span class="font-bold bg-[#ffd166] px-1">「A 病原體」可與「10」同歸於盡！</span></li>
+                <li><span class="font-bold text-[#7f5539]">使用道具或棄牌：</span>打出 J / Q 道具牌，或棄掉一張手牌。</li>
+              </ol>
+            </li>
+          </ul>
+        </section>
+
+        <!-- 4. 特殊牌功能 -->
+        <section class="pixel-box-sm bg-[#fff3b0] p-3.5">
+          <h4 class="font-bold text-base sm:text-lg text-[#9e2a2b] mb-2 flex items-center gap-1.5">
+            <span>✨</span> 4. 特殊牌功能（J / Q / K）
+          </h4>
+          <div class="space-y-2 text-xs sm:text-sm">
+            <div class="bg-white/80 p-2 border-2 border-[#2b2d42]">
+              <span class="font-bold text-[#7209b7]">【J】外來物種入侵：</span>指定一名對手下回合暫停行動一次。
+            </div>
+            <div class="bg-white/80 p-2 border-2 border-[#2b2d42]">
+              <span class="font-bold text-[#0077b6]">【Q】保育防護罩：</span>覆蓋在自己一張生物牌上，可抵擋一次對手攻擊或本網頁抽出的負面環境事件。
+            </div>
+            <div class="bg-white/80 p-2 border-2 border-[#2b2d42]">
+              <span class="font-bold text-[#d62828]">【K】環境事件：</span>抽到時立刻亮出棄置，按下本網頁的「抽取生態事件」按鈕執行效果，並再抽一張牌補滿 4 張。
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 底部關閉按鈕 -->
+      <div class="p-3 border-t-4 border-[#2b2d42] bg-[#e9edc9]">
+        <button onclick="closeModal('manualModal')" class="pixel-btn bg-[#52b788] text-white w-full py-2.5 font-bold">
+          我瞭解了，返回遊戲！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗二：抽取紀錄 ==================== -->
+  <div id="historyModal" class="hidden fixed inset-0 z-50 bg-[#2b2d42]/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="pixel-box bg-[#fffdf7] w-full max-w-md max-h-[80vh] flex flex-col">
+      <div class="bg-[#7f5539] text-white px-4 py-3 border-b-4 border-[#2b2d42] flex items-center justify-between">
+        <h3 class="text-lg font-bold flex items-center gap-2">
+          <span>📜</span> 本局環境事件紀錄
+        </h3>
+        <button onclick="closeModal('historyModal')" class="pixel-btn bg-[#ef476f] text-white px-2.5 py-1 text-sm font-bold">
+          ✕
+        </button>
+      </div>
+      <div id="historyList" class="p-4 overflow-y-auto pixel-scroll space-y-2.5 flex-1 text-sm">
+        <p class="text-center text-gray-500 py-6">目前尚未抽過任何環境事件喔！</p>
+      </div>
+      <div class="p-3 border-t-4 border-[#2b2d42] bg-[#e9edc9] flex gap-2">
+        <button onclick="clearHistory()" class="pixel-btn bg-[#ef476f] text-white px-3 py-2 text-xs sm:text-sm font-bold">
+          🗑️ 清空紀錄
+        </button>
+        <button onclick="closeModal('historyModal')" class="pixel-btn bg-[#ffd166] text-[#2b2d42] flex-1 py-2 text-xs sm:text-sm font-bold">
+          關閉視窗
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. Web Audio API 8-bit 復古像素音效引擎
+    // ==========================================
+    let audioCtx = null;
+    let isSoundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = 'square', duration = 0.1, delay = 0, volume = 0.12) {
+      if (!isSoundEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + duration);
+      } catch (e) {
+        // 忽略自動播放限制錯誤
+      }
+    }
+
+    // 音效預設組合
+    const SFX = {
+      click: () => {
+        playTone(523.25, 'square', 0.06, 0, 0.1);
+        playTone(659.25, 'square', 0.08, 0.05, 0.1);
+      },
+      shuffleTick: (step) => {
+        const notes = [330, 392, 440, 493.88, 523.25, 587.33];
+        const freq = notes[step % notes.length];
+        playTone(freq, 'triangle', 0.07, 0, 0.14);
+      },
+      revealAlert: () => {
+        // 緊張警示雙音 + 揭曉和弦
+        playTone(440, 'sawtooth', 0.12, 0, 0.12);
+        playTone(415.30, 'sawtooth', 0.12, 0.12, 0.12);
+        playTone(587.33, 'square', 0.25, 0.25, 0.15);
+        playTone(880, 'square', 0.35, 0.35, 0.15);
+      }
+    };
+
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      const icon = document.getElementById('soundIcon');
+      const label = document.getElementById('soundLabel');
+      if (isSoundEnabled) {
+        icon.textContent = '🔊';
+        label.textContent = '音效開';
+        SFX.click();
+      } else {
+        icon.textContent = '🔇';
+        label.textContent = '靜音中';
+      }
+    }
+
+    // ==========================================
+    // 2. 四大生態隨機事件資料庫（含精緻像素 2D SVG 插畫）
+    // ==========================================
+    const ECO_EVENTS = [
+      {
+        id: 'EVENT #01',
+        title: '🔥 森林大火',
+        badgeText: '🔥 棲地燃燒危機',
+        badgeBg: '#e63946',
+        effect: '所有玩家場上數字「最小」的一張生物牌棄置（平手則皆棄置）！',
+        knowledge: '突發的森林大火會無差別衝擊棲地，首當其衝的是移動較慢或數量較少的物種。',
+        // 像素 2D 插畫：燃燒的森林與驚訝跳開的可愛小狐狸
+        svg: `
+          <svg class="w-full h-full pixel-art" viewBox="0 0 64 36" preserveAspectRatio="xMidYMid slice">
+            <!-- 橘紅煙霧天空 -->
+            <rect width="64" height="36" fill="#ff9f1c"/>
+            <rect x="0" y="0" width="64" height="14" fill="#e71d36"/>
+            <!-- 像素濃煙雲朵 -->
+            <rect x="6" y="4" width="12" height="5" fill="#4a4e69"/>
+            <rect x="9" y="2" width="6" height="2" fill="#4a4e69"/>
+            <rect x="38" y="3" width="16" height="6" fill="#22223b"/>
+            <rect x="42" y="1" width="8" height="2" fill="#22223b"/>
+            <!-- 焦黑土地 -->
+            <rect x="0" y="29" width="64" height="7" fill="#3d2c2e"/>
+            <rect x="0" y="27" width="64" height="2" fill="#582f0e"/>
+            <!-- 左側燃燒的樹 -->
+            <rect x="10" y="20" width="3" height="7" fill="#2b2d42"/>
+            <rect x="6" y="14" width="11" height="6" fill="#d62828"/>
+            <rect x="8" y="10" width="7" height="4" fill="#f77f00"/>
+            <rect x="10" y="7" width="3" height="3" fill="#fcbf49"/>
+            <!-- 跳動小火苗 -->
+            <rect x="21" y="23" width="4" height="4" fill="#d62828"/>
+            <rect x="22" y="21" width="2" height="2" fill="#fcbf49"/>
+            <rect x="52" y="22" width="5" height="5" fill="#d62828"/>
+            <rect x="53" y="19" width="3" height="3" fill="#f77f00"/>
+            <rect x="54" y="17" width="1" height="2" fill="#fcbf49"/>
+            <!-- 可愛像素小狐狸驚訝跳開 (右側) -->
+            <g transform="translate(34, 15)">
+              <!-- 驚嘆號 -->
+              <rect x="5" y="-5" width="2" height="3" fill="#ffffff"/>
+              <rect x="5" y="-1" width="2" height="1" fill="#ffffff"/>
+              <!-- 耳朵 -->
+              <rect x="2" y="1" width="2" height="2" fill="#f77f00"/>
+              <rect x="7" y="1" width="2" height="2" fill="#f77f00"/>
+              <!-- 頭部與身體 -->
+              <rect x="2" y="3" width="7" height="5" fill="#f77f00"/>
+              <rect x="2" y="6" width="3" height="2" fill="#ffffff"/>
+              <rect x="7" y="6" width="2" height="2" fill="#ffffff"/>
+              <!-- 驚訝大眼睛 -->
+              <rect x="3" y="4" width="1" height="2" fill="#2b2d42"/>
+              <rect x="7" y="4" width="1" height="2" fill="#2b2d42"/>
+              <!-- 蓬鬆大尾巴 -->
+              <rect x="9" y="5" width="4" height="3" fill="#f77f00"/>
+              <rect x="12" y="5" width="2" height="2" fill="#ffffff"/>
+              <!-- 跳起的小腳 -->
+              <rect x="3" y="8" width="1" height="2" fill="#2b2d42"/>
+              <rect x="7" y="8" width="1" height="2" fill="#2b2d42"/>
+            </g>
+          </svg>
+        `
+      },
+      {
+        id: 'EVENT #02',
+        title: '⛈️ 暴雨侵襲',
+        badgeText: '⛈️ 洪水水位暴漲',
+        badgeBg: '#0077b6',
+        effect: '所有玩家場上的「♣ 生產者（植物）」若沒有 Q 防護罩，數字 5 以下全部淹水棄置！',
+        knowledge: '短時間強降雨會造成土壤沖刷與淹水，導致底層植物根部腐爛、無法行光合作用。',
+        // 像素 2D 插畫：烏雲大雨與撐著荷葉傘的可愛像素小青蛙
+        svg: `
+          <svg class="w-full h-full pixel-art" viewBox="0 0 64 36" preserveAspectRatio="xMidYMid slice">
+            <!-- 陰雨藍灰天空 -->
+            <rect width="64" height="36" fill="#457b9d"/>
+            <!-- 厚重烏雲 -->
+            <rect x="4" y="2" width="22" height="6" fill="#1d3557"/>
+            <rect x="8" y="0" width="14" height="2" fill="#1d3557"/>
+            <rect x="34" y="3" width="26" height="6" fill="#1d3557"/>
+            <rect x="40" y="1" width="14" height="2" fill="#1d3557"/>
+            <!-- 閃電 -->
+            <polygon points="16,8 13,14 17,14 14,20" fill="#ffd166"/>
+            <!-- 像素雨滴 -->
+            <rect x="8" y="11" width="1" height="3" fill="#a8dadc"/>
+            <rect x="22" y="13" width="1" height="3" fill="#a8dadc"/>
+            <rect x="30" y="10" width="1" height="3" fill="#a8dadc"/>
+            <rect x="44" y="12" width="1" height="3" fill="#a8dadc"/>
+            <rect x="54" y="11" width="1" height="3" fill="#a8dadc"/>
+            <rect x="12" y="19" width="1" height="3" fill="#a8dadc"/>
+            <rect x="48" y="18" width="1" height="3" fill="#a8dadc"/>
+            <!-- 上漲的水面 -->
+            <rect x="0" y="27" width="64" height="9" fill="#0096c7"/>
+            <rect x="0" y="27" width="64" height="2" fill="#90e0ef"/>
+            <!-- 浮在水面的小荷葉 -->
+            <rect x="24" y="26" width="14" height="2" fill="#2d6a4f"/>
+            <!-- 可愛像素小青蛙撐著荷葉傘 -->
+            <g transform="translate(27, 13)">
+              <!-- 荷葉傘面 -->
+              <rect x="-2" y="0" width="12" height="2" fill="#52b788"/>
+              <rect x="0" y="-1" width="8" height="1" fill="#74c69d"/>
+              <!-- 傘柄 -->
+              <rect x="6" y="2" width="1" height="8" fill="#7f5539"/>
+              <!-- 青蛙眼睛 -->
+              <rect x="1" y="6" width="2" height="2" fill="#06d6a0"/>
+              <rect x="4" y="6" width="2" height="2" fill="#06d6a0"/>
+              <rect x="1" y="6" width="1" height="1" fill="#2b2d42"/>
+              <rect x="4" y="6" width="1" height="1" fill="#2b2d42"/>
+              <!-- 青蛙身體 -->
+              <rect x="0" y="8" width="7" height="5" fill="#06d6a0"/>
+              <rect x="2" y="10" width="3" height="2" fill="#b7e4c7"/>
+            </g>
+          </svg>
+        `
+      },
+      {
+        id: 'EVENT #03',
+        title: '⛰️ 土石流',
+        badgeText: '⛰️ 坡地崩塌災害',
+        badgeBg: '#7f5539',
+        effect: '抽到 K 牌的玩家指定一位對手，棄置該對手場上一張「♦ 初級消費者（草食）」或「♥ 次級消費者（肉食）」！',
+        knowledge: '山坡地過度開發加上豪雨容易引發土石流，會瞬間摧毀中低海拔動物的棲息地與食物來源。',
+        // 像素 2D 插畫：山坡泥石滾落與樹枝上張望的可愛小鳥
+        svg: `
+          <svg class="w-full h-full pixel-art" viewBox="0 0 64 36" preserveAspectRatio="xMidYMid slice">
+            <!-- 灰黃色天空 -->
+            <rect width="64" height="36" fill="#d8e2dc"/>
+            <!-- 左側崩塌山坡 -->
+            <polygon points="0,6 38,36 0,36" fill="#7f5539"/>
+            <polygon points="0,12 30,36 0,36" fill="#582f0e"/>
+            <!-- 滾落的泥流與像素石塊 -->
+            <rect x="12" y="14" width="5" height="4" fill="#6c757d"/>
+            <rect x="13" y="15" width="2" height="2" fill="#adb5bd"/>
+            <rect x="22" y="21" width="6" height="5" fill="#495057"/>
+            <rect x="23" y="22" width="2" height="2" fill="#adb5bd"/>
+            <rect x="31" y="28" width="7" height="5" fill="#6c757d"/>
+            <rect x="18" y="26" width="4" height="4" fill="#9c6644"/>
+            <rect x="38" y="32" width="26" height="4" fill="#7f5539"/>
+            <!-- 右側安全的大樹與樹枝 -->
+            <rect x="52" y="12" width="4" height="20" fill="#582f0e"/>
+            <rect x="44" y="6" width="18" height="8" fill="#40916c"/>
+            <rect x="46" y="3" width="14" height="3" fill="#52b788"/>
+            <!-- 伸出的樹枝 -->
+            <rect x="43" y="18" width="9" height="2" fill="#582f0e"/>
+            <!-- 站在樹枝上緊張張望的可愛像素小鳥 -->
+            <g transform="translate(44, 12)">
+              <!-- 緊張汗滴 -->
+              <rect x="-2" y="1" width="1" height="2" fill="#48cae4"/>
+              <!-- 小鳥身體 (黃色) -->
+              <rect x="1" y="1" width="5" height="5" fill="#ffd166"/>
+              <rect x="6" y="3" width="2" height="2" fill="#f77f00"/>
+              <!-- 眼睛與小尖嘴 -->
+              <rect x="2" y="2" width="1" height="1" fill="#2b2d42"/>
+              <rect x="0" y="3" width="1" height="1" fill="#ef476f"/>
+            </g>
+          </svg>
+        `
+      },
+      {
+        id: 'EVENT #04',
+        title: '☀️ 乾旱',
+        badgeText: '☀️ 極端缺水危機',
+        badgeBg: '#f77f00',
+        effect: '所有玩家本回合無法部署新生物，且場上「♠ 頂級掠食者」因缺乏獵物與水源而棄置！',
+        knowledge: '長期缺水會讓植物枯萎、草食動物減少，食物鏈最頂端的掠食者會因能量傳遞中斷而最難生存。',
+        // 像素 2D 插畫：烈日高掛、大地龜裂與低頭找水的可愛像素小鹿
+        svg: `
+          <svg class="w-full h-full pixel-art" viewBox="0 0 64 36" preserveAspectRatio="xMidYMid slice">
+            <!-- 炙熱金黃天空 -->
+            <rect width="64" height="36" fill="#ffedd8"/>
+            <rect width="64" height="14" fill="#ffd166"/>
+            <!-- 大大的像素烈日 -->
+            <rect x="46" y="3" width="10" height="10" fill="#f77f00"/>
+            <rect x="48" y="5" width="6" height="6" fill="#fcbf49"/>
+            <!-- 陽光射線 -->
+            <rect x="42" y="7" width="3" height="1" fill="#f77f00"/>
+            <rect x="57" y="7" width="3" height="1" fill="#f77f00"/>
+            <rect x="50" y="14" width="1" height="3" fill="#f77f00"/>
+            <rect x="44" y="13" width="2" height="2" fill="#f77f00"/>
+            <!-- 乾涸龜裂的大地 -->
+            <rect x="0" y="26" width="64" height="10" fill="#e6ccb2"/>
+            <rect x="0" y="26" width="64" height="2" fill="#ddb892"/>
+            <!-- 地面裂痕 -->
+            <rect x="8" y="29" width="6" height="1" fill="#7f5539"/>
+            <rect x="11" y="30" width="1" height="3" fill="#7f5539"/>
+            <rect x="46" y="30" width="8" height="1" fill="#7f5539"/>
+            <rect x="49" y="31" width="1" height="3" fill="#7f5539"/>
+            <!-- 乾涸的小水窪痕跡 -->
+            <rect x="28" y="28" width="12" height="3" fill="#b08968"/>
+            <rect x="31" y="29" width="6" height="1" fill="#90e0ef"/>
+            <!-- 枯萎的小草 -->
+            <rect x="6" y="23" width="1" height="3" fill="#b08968"/>
+            <rect x="7" y="24" width="2" height="1" fill="#b08968"/>
+            <!-- 低頭找水的可愛像素小鹿 (左側) -->
+            <g transform="translate(15, 14)">
+              <!-- 小鹿角 -->
+              <rect x="8" y="0" width="1" height="3" fill="#7f5539"/>
+              <rect x="10" y="1" width="1" height="2" fill="#7f5539"/>
+              <!-- 低頭的頭部 -->
+              <rect x="7" y="3" width="5" height="4" fill="#d4a373"/>
+              <rect x="11" y="5" width="2" height="2" fill="#faedcd"/>
+              <rect x="9" y="4" width="1" height="1" fill="#2b2d42"/>
+              <!-- 身體與白斑點 -->
+              <rect x="1" y="6" width="8" height="5" fill="#d4a373"/>
+              <rect x="3" y="7" width="1" height="1" fill="#ffffff"/>
+              <rect x="6" y="8" width="1" height="1" fill="#ffffff"/>
+              <!-- 四條細腿 -->
+              <rect x="2" y="11" width="1" height="3" fill="#bc6c25"/>
+              <rect x="4" y="11" width="1" height="3" fill="#bc6c25"/>
+              <rect x="7" y="11" width="1" height="3" fill="#bc6c25"/>
+            </g>
+          </svg>
+        `
+      }
+    ];
+
+    // ==========================================
+    // 3. 抽卡互動與狀態管理
+    // ==========================================
+    let isDrawing = false;
+    let drawHistory = [];
+    let lastEventIndex = -1;
+
+    function startDrawEvent() {
+      if (isDrawing) return;
+      isDrawing = true;
+
+      const drawBtn = document.getElementById('drawEventBtn');
+      const resetBtn = document.getElementById('resetCardBtn');
+      const terrariumStage = document.getElementById('terrariumStage');
+      const terrariumVisual = document.getElementById('terrariumVisual');
+      const eventCardStage = document.getElementById('eventCardStage');
+      const shufflingOverlay = document.getElementById('shufflingOverlay');
+      const shuffleProgress = document.getElementById('shuffleProgress');
+      const shuffleIcon = document.getElementById('shuffleIcon');
+      const shuffleText = document.getElementById('shuffleText');
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+
+      // 切換回待機舞台並啟動緊張洗牌效果
+      eventCardStage.classList.add('hidden');
+      terrariumStage.classList.remove('hidden');
+      resetBtn.classList.add('hidden');
+      drawBtn.disabled = true;
+      drawBtn.classList.remove('animate-pulse-gold');
+
+      terrariumVisual.classList.add('animate-shake');
+      shufflingOverlay.classList.remove('hidden');
+      statusDot.className = 'w-3 h-3 bg-[#ef476f] border-2 border-[#2b2d42] inline-block animate-ping';
+      statusText.textContent = '警告！偵測到自然環境劇烈變化...';
+
+      const icons = ['🔥', '⛈️', '⛰️', '☀️', '🎴', '⚠️'];
+      const texts = ['感應自然波動中...', '氣壓急劇變化...', '生態警鈴大作！', '即將揭曉環境事件！'];
+      let step = 0;
+      const totalSteps = 12; // 約 1.2 秒
+
+      const interval = setInterval(() => {
+        step++;
+        SFX.shuffleTick(step);
+        shuffleIcon.textContent = icons[step % icons.length];
+        shuffleText.textContent = texts[Math.floor((step / totalSteps) * texts.length)] || texts[3];
+        shuffleProgress.style.width = `${Math.min(100, (step / totalSteps) * 100)}%`;
+
+        if (step >= totalSteps) {
+          clearInterval(interval);
+          finishDrawEvent();
+        }
+      }, 100);
+    }
+
+    function finishDrawEvent() {
+      // 隨機挑選一個事件（盡量避免連續兩次完全相同，提升桌遊體驗）
+      let randomIndex;
+      do {
+        randomIndex = Math.floor(Math.random() * ECO_EVENTS.length);
+      } while (randomIndex === lastEventIndex && ECO_EVENTS.length > 1);
+      lastEventIndex = randomIndex;
+
+      const selected = ECO_EVENTS[randomIndex];
+      SFX.revealAlert();
+
+      // 復原洗牌層狀態
+      const terrariumStage = document.getElementById('terrariumStage');
+      const terrariumVisual = document.getElementById('terrariumVisual');
+      const shufflingOverlay = document.getElementById('shufflingOverlay');
+      const shuffleProgress = document.getElementById('shuffleProgress');
+      const eventCardStage = document.getElementById('eventCardStage');
+      const drawBtn = document.getElementById('drawEventBtn');
+      const resetBtn = document.getElementById('resetCardBtn');
+
+      terrariumVisual.classList.remove('animate-shake');
+      shufflingOverlay.classList.add('hidden');
+      shuffleProgress.style.width = '0%';
+      terrariumStage.classList.add('hidden');
+
+      // 填入事件卡內容
+      document.getElementById('eventNumber').textContent = selected.id;
+      document.getElementById('eventTitle').textContent = selected.title;
+      const badge = document.getElementById('eventBadge');
+      badge.textContent = selected.badgeText;
+      badge.style.backgroundColor = selected.badgeBg;
+      document.getElementById('eventIllustration').innerHTML = selected.svg;
+      document.getElementById('eventEffect').textContent = selected.effect;
+      document.getElementById('eventKnowledge').textContent = selected.knowledge;
+
+      // 重新觸發卡片彈出動畫
+      eventCardStage.classList.remove('hidden');
+      eventCardStage.classList.remove('animate-card-reveal');
+      void eventCardStage.offsetWidth; // 強制 reflow
+      eventCardStage.classList.add('animate-card-reveal');
+
+      // 更新按鈕狀態
+      drawBtn.disabled = false;
+      drawBtn.innerHTML = '<span class="text-2xl">🎲</span><span>再抽一張生態事件！</span>';
+      resetBtn.classList.remove('hidden');
+
+      // 寫入抽取紀錄
+      addHistoryRecord(selected);
+      isDrawing = false;
+    }
+
+    function resetToTerrarium() {
+      SFX.click();
+      const terrariumStage = document.getElementById('terrariumStage');
+      const eventCardStage = document.getElementById('eventCardStage');
+      const drawBtn = document.getElementById('drawEventBtn');
+      const resetBtn = document.getElementById('resetCardBtn');
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+
+      eventCardStage.classList.add('hidden');
+      terrariumStage.classList.remove('hidden');
+      resetBtn.classList.add('hidden');
+
+      statusDot.className = 'w-3 h-3 bg-[#06d6a0] border-2 border-[#2b2d42] inline-block';
+      statusText.textContent = '生態系恢復平靜，等待下一張 K 牌...';
+
+      drawBtn.classList.add('animate-pulse-gold');
+      drawBtn.innerHTML = '<span class="text-2xl">🎲</span><span>抽到 K 牌！抽取生態事件</span>';
+    }
+
+    // ==========================================
+    // 4. 抽取紀錄與彈窗控制
+    // ==========================================
+    function addHistoryRecord(eventObj) {
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      drawHistory.unshift({
+        round: drawHistory.length + 1,
+        time: timeStr,
+        title: eventObj.title,
+        effect: eventObj.effect
+      });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      document.getElementById('historyCount').textContent = drawHistory.length;
+      const listEl = document.getElementById('historyList');
+      if (drawHistory.length === 0) {
+        listEl.innerHTML = '<p class="text-center text-gray-500 py-6">目前尚未抽過任何環境事件喔！</p>';
+        return;
+      }
+      listEl.innerHTML = drawHistory.map(item => `
+        <div class="pixel-box-sm bg-white p-2.5">
+          <div class="flex items-center justify-between text-xs text-[#7f5539] font-bold mb-1">
+            <span>第 ${item.round} 次觸發</span>
+            <span>${item.time}</span>
+          </div>
+          <div class="font-bold text-base text-[#2b2d42] mb-1">${item.title}</div>
+          <div class="text-xs text-[#4a5759]">${item.effect}</div>
+        </div>
+      `).join('');
+    }
+
+    function clearHistory() {
+      SFX.click();
+      drawHistory = [];
+      renderHistory();
+    }
+
+    function openModal(modalId) {
+      SFX.click();
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      SFX.click();
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // 點擊彈窗背景空白處關閉
+    window.addEventListener('click', (e) => {
+      if (e.target.id === 'manualModal') closeModal('manualModal');
+      if (e.target.id === 'historyModal') closeModal('historyModal');
+    });
+  </script>
+</body>
+</html>
